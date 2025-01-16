@@ -2,6 +2,11 @@
 
 ## Modality Contribution Computation
 
+---
+header-includes:
+  - \usepackage{algorithm}
+---
+
 ```math
 \begin{algorithm}
 	\caption{Computation of Modality Contribution $m_i$}\label{alg:modality_contrib}
