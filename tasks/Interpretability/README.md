@@ -6,8 +6,7 @@
 header-includes:
   - \usepackage[ruled,vlined,linesnumbered]{algorithm2e}
 ---
-
-```math
+# Algorithm 1
 \begin{algorithm}
 	\caption{Computation of Modality Contribution $m_i$}\label{alg:modality_contrib}
 	\begin{algorithmic}[1]
@@ -34,5 +33,3 @@ header-includes:
 		\EndFor
 	\end{algorithmic}
 \end{algorithm}
-```
-
