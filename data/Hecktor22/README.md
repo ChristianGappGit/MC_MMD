@@ -12,5 +12,3 @@ https://hecktor.grand-challenge.org/
 
 
 ## Data Preprocessing
-
-
