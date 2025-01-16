@@ -4,7 +4,7 @@
 
 ---
 header-includes:
-  - \usepackage[ruled,vlined,linesnumbered]{algorithm2e}
+  - \usepackage{algorithm}
 ---
 # Algorithm 1
 \begin{algorithm}
