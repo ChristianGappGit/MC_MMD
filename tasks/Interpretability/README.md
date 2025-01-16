@@ -3,6 +3,7 @@
 ## Modality Contribution Computation
 
 # Algorithm 1
+```math
 $$
 \begin{algorithm}
 	\caption{Computation of Modality Contribution $m_i$}\label{alg:modality_contrib}
@@ -31,3 +32,4 @@ $$
 	\end{algorithmic}
 \end{algorithm}
 $$
+```
