@@ -2,11 +2,13 @@
 
 https://hecktor.grand-challenge.org/
 
-## 1) Register and Sign in (therein License Agreements must be made)
+## Download Data:
 
-## 2) Go to Data Download (or open https://hecktor.grand-challenge.org/data-download-2/)
+1) Register and Sign in (therein License Agreements must be made)
 
-## 3) Follow the instructions and download the data
+2) Go to Data Download (or open https://hecktor.grand-challenge.org/data-download-2/)
+
+3) Follow the instructions and download the data
 
 
 # Data Preprocessing
