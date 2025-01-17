@@ -12,7 +12,7 @@ regression, prediction of RFS times
 
 ## Model
 
-![img3](hecktor22_multimodal_model.eps "model hecktor 22")
+![img3](hecktor22_multimodal_model.png "model hecktor 22")
 
 ## Performance:
 Performance c-index on image--tabular regression task, viz. Hecktor 22, for (1) multimodal models, (2) vision (only) models and (3) clinical (only) models on the testing dataset. Here the results are for the RFS prediction, i.e. the observed class is label 1: relapse.
