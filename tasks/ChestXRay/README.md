@@ -30,4 +30,4 @@ Fig.: Chest X-Ray + Clinical Report. Example item CXR1897_IM-0581-1001. Disease:
 
 Performance AUC on image--text pair classification task, i.e. Chest X-Ray + clinical report, for (1) multimodal models, (2) vision (only) models and (3) clinical (only) models using the testing dataset.
 
-![img2](tabular_ChestXRay.png "tabular ChestXRay")
+![img2](performance_ChestXRay.png "performance ChestXRay")
