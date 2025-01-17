@@ -1,8 +1,21 @@
-# ChestXRay
+# Chest X-Ray
 2D Chest X-Rays / clinical reports
 classification of diseases
 
 ## 12 diseases:
+
+atelectasis, 
+cardiomegaly, 
+consolidation, 
+edema, 
+enlarged cardiomediastinum, 
+fracture, 
+lung lesion, 
+lung opacity, 
+pleural effusion, 
+pleural other, 
+pneumonia, 
+pneumothorax
 
 one for Support Devices,
 another one for no finding.
