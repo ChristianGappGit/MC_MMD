@@ -10,7 +10,7 @@ regression, prediction of RFS times
 
 ![img2](tabular_hecktor22.png "tabular hecktor 22")
 
-## Model
+## Model:
 
 ![img3](hecktor22_multimodal_model.png "model hecktor 22")
 
