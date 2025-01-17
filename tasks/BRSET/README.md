@@ -2,7 +2,7 @@
 2D opthalmological color fundus images / tabular data (patient information)
 classification of following 
 
-##13 diseases:
+## 13 diseases:
 diabetic retinopathy, 
 macular edema, 
 scar, 
