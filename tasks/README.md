@@ -5,6 +5,8 @@ Altough the computation of the modality contribution is done in each folder (for
 we additionally provide the computation method in the Interpretability folder, 
 together with some explanations.
 
+Feel free to use the files in Interpretability for your own projects (analogously to the projects).
+
 ## BRSET
 2D opthalmological color fundus images / tabular data (patient information)
 classification of diseases
