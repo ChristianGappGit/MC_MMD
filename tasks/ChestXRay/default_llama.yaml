@@ -1,0 +1,137 @@
+experiment_name: Default
+device: cuda
+
+seed: 0 # <0: no determinism, > 0 determinism
+
+server: True #True: server, False: local
+
+spacing: [1.0, 1.0]
+
+image_size: [224, 224] #must match 224x224 for ViT (when pretrained net used)
+
+preprocess_text: True #True: preprocess text (delete class names), False: use raw text
+text_max_seq_length: 196 #must be equal to (img_size[0]*img_size[1]/patch_size[0]*patch_size[1])
+
+train:
+  num_items: 3199  #max is 3199
+  dataload:
+    batch_size: 10
+    num_workers: 12
+    shuffle: True
+
+val:
+  num_items: 101  #max is 101
+  dataload: 
+    batch_size: 10
+    num_workers: 12
+    shuffle: False
+
+test:
+  num_items: 377 #max is 377
+  dataload:       #overloaded by val dataload (be aware wehen unwanted)
+    batch_size: 10
+    num_workers: 12
+    shuffle: False
+
+epochs: 25
+val_interval: 2
+
+optimizer_param:
+  learning_rate: 1e-4 #1e-4, Note that "lr" can/should be quite small when a pretrained model is used
+  weight_decay: 1e-5  #1e-5, -||-
+
+net: #ImageTextNet parameters
+  model_name: "ResNetLLaMAII" # "ViTLLaMAII", "ResNetLLaMAII"
+  in_channels: 3 #regarding images
+  patch_size: [16, 16] #atention: must be a factor of the image size, and patch_size[0]*patch_size[1] must be equal to text_max_seq_length (196 for 224x224, 16x16)
+  num_classes: 14
+  pretrained_vision_net: True
+  #ViT ---
+  num_vision_layers: 3
+  vit_path_server: "/home/christian/data/vit/vit_16_224_imagenet1000/vit_16_224_imagenet1000.pth"
+  hidden_size_vision: 768 #768, others only supported, if no pretrained model is used
+  intermediate_size_vision: 3072 # 3072 #normally 3072 (= mlp_dim of ViT), can be adapted to anything
+  #ResNet ---
+  conv1_t_size: 1 #with 1x1 convolutions we get exactly 14x14 = 196 = seq_len_text (1*2^4 = 16, 224/16 = 14)
+  conv1_t_stride: 1
+  #LLaMA ---
+  #llama_path_server: "/home/christian/data/LLaMA/llama_xaviergeerinck"  #Server #llamaI path
+  llama_path_server: "/home/christian/data/LLaMA/llama2/llama-main" 
+  #llama_path_local : "/home/christian/PhD_bigData2/LLaMA/llama_xaviergeerinck" #UMIT #llamaI path
+  llama_path_local : "/media/christian/Daten/christian/PhD/PhD_BigData/models/llama2/llama-main" #llamaII path
+  language_model: "LLaMA7B" #possible values: "LLaMA30B", "LLaMA13B", "LLaMA7B", "Bert"
+  tokenizer: "llama" #possible values: "llama", "bert"
+  vocab_size: -1 #will be set correctly by tokenizer in LLaMAPretrainedModel class
+  dim: 4096 #4096, 5120, 6656
+  multiple_of : 256
+  #General ---
+  num_text_layers: 3
+  num_cross_attention_layers: 0
+  num_pre_activation_layers: 0 #0: no cross information
+  num_pre_activation_layers_cross: 0 #with cross information
+  num_attention_heads_text: 32 #32, 40, 52
+  num_attention_heads_vision: 32 #must be the same as num_attention_heads_text
+  spatial_dims: 2
+  drop_out: 0.1
+  text_only: True
+  vision_only: False
+  serial_pipeline: False #True: cross layer serial to others, False: parallel to others (using pre features)
+
+lora:
+  use_lora: True
+  r: 2
+  #r=8 for one type, r=4 for two types, r=2 for all (four (wk, wv, wq, wo)) types
+  alpha: 32
+  dropout: 0.1
+  target_modules: [
+                  #Vision
+                  #VIT
+                    "patch_embeddings",  #conv2d (ViT)
+                    "qkv", #all three layers in one (ViT)
+                    "out_proj", 
+                    "linear1",  #mlp
+                    "linear2",  #mlp
+                  #Text
+                    "text_embeddings",
+                    "wq_text", "wk_text", "wv_text", "wo_text",
+                    "w2_text",
+                  #Cross
+                    "wq_cross", "wk_cross", "wv_cross", "wo_cross", #TransformerBlock
+                    "w2_cross", #FeedForward
+                  #"outputTransformation", #common output layer for all 3 pipelines (nn.Linear, thus could be trained within lora)
+                  #"denseCLS",
+                  ] #modules where lora should be applied to
+
+  target_modules_req_grad: [ #not of type lora, but trained
+                      #ResNet (gradients must be set True manually)
+                      "conv1", #conv2d
+                      "bn1", #BatchNorm2d
+                      "relu", #ReLU
+                      "conv2", #conv2d
+                      "bn2", #BatchNorm2d
+                      "maxpool", #MaxPool2d
+                      #"layer1", "layer2", "layer3", "layer4", #Bottleneck
+                      "avgpool", #AdaptiveAvgPool2d
+                      "fc", #Linear
+                      "dropout", #Dropout
+                      #patch_embeddings, # already set (done with lora)
+                      ]
+#--------------------------------------------------------------------------------------------------------------------
+#          ATTENTION: these layers are trained, as they have the prefix "lora_" in their name
+#                  "lora_text_position_embeddings",  #nn.Parameter
+#                  "lora_vision_position_embeddings", #nn.Parameter, in PatchEmbeddingBlock from ViT
+#--------------------------------------------------------------------------------------------------------------------
+
+#Interpretabilty
+occlusion:
+  #mask_size: [16,16] #set to patch_size
+  #stride: [32,32] #must be a factor of the image size #replaced by overlap
+  overlap: 0.75 #overlap between inferred regions
+  mode: 'mean_img' #'gaussian', 'mean_img', 'mean_patch'
+  n_batch: 16 #number of images in a batch for inference
+  text_mask: "mean" #when "mean", the text is replaced by the mean of the text embeddings, otherwise the text_mask is taken
+  num_examples: 377 #max is 377
+
+performance:  #With modification of the following lines the model can be testet on either all, or only one modality
+  text_available: True
+  vision_available: True

@@ -1,0 +1,65 @@
+experiment_name: Default
+device: cuda #"cuda": selects 24GB GPU, "cuda:0" 8GB GPU, "cuda:1" 24GB GPU
+
+seed: 0 #null: seed=None -> no determinism
+
+spacing: [1.0, 1.0]
+
+image_size: [64, 64]
+
+allow_other_loc: True
+
+num_items: 20  #max is 3199
+
+even_class_balance: False #note that "True" affects num_items
+
+frac_train_to_val: 0.8
+
+train:
+  dataload:
+    batch_size: 1
+    num_workers: 6
+    shuffle: True
+  transform:
+    randFlipProp: 0.3
+    randAffineProp: 0.2
+    randAffineRotateRange: [0.0, 0.0, 0.2094] #0.2094 ~ PI/15
+    randAffineScaleRange: [0.1, 0.1, 0.1]
+
+val:
+  batch_size: 1
+  num_workers: 6
+  shuffle: False
+
+test:
+  batch_size: 1
+  num_workers: 6
+  shuffle: False
+
+epochs: 2
+val_interval: 1
+
+optimizer_param:
+  learning_rate: 1e-4 #1e-4, Note that "lr" can/should be quite small when a pretrained model is used
+  weight_decay: 1e-5  #1e-5, -||-
+
+net: #ImageTextNet parameters
+  in_channels: 3
+  patch_size: [32, 32]
+  num_classes: 14  #ATTENTION: allow_other_loc = True: 3, False: 2
+  num_vision_layers: 2
+  num_text_layers: 2
+  num_cross_attention_layers: 2
+  num_attention_heads: 32
+  num_hidden_layers: 2
+  spatial_dims: 2
+  llama_path: "/home/christian/PhD_bigData2/LLaMA/llama_xaviergeerinck"
+  model_type: "bert"
+  vocab_size: 32768
+  dim: 4096
+  multiple_of : 256
+
+occlusion:
+  mask_size: [4,4,6] #both mask_size and stride must be even or odd
+  stride: [90, 90, 128]  #must be a factor of the image shape
+  #memory problems may occur when stride is very small

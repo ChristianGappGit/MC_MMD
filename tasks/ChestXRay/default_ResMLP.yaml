@@ -1,0 +1,81 @@
+experiment_name: Default
+device: cuda
+
+seed: 0 # <0: no determinism, > 0 determinism
+
+server: True #True: server, False: local
+
+spacing: [1.0, 1.0]
+
+image_size: [224, 224] #must match 224x224 for ViT (when pretrained net used)
+
+preprocess_text: True #True: preprocess text (delete class names), False: use raw text
+text_max_seq_length: 196
+
+train:
+  num_items: 3199  #max is 3199
+  dataload:
+    batch_size: 10
+    num_workers: 12
+    shuffle: True
+
+val:
+  num_items: 101  #max is 101
+  dataload: 
+    batch_size: 10
+    num_workers: 12
+    shuffle: False
+
+test:
+  num_items: 377 #max is 377
+  dataload:       #overloaded by val dataload (be aware wehen unwanted)
+    batch_size: 10
+    num_workers: 12
+    shuffle: False
+
+epochs: 50
+val_interval: 2
+
+optimizer_param:
+  learning_rate: 1e-4 #1e-4, Note that "lr" can/should be quite small when a pretrained model is used
+  weight_decay: 1e-5  #1e-5, -||-
+
+net: #ImageTextNet parameters
+  name: "ViTMLP" # "ResMLP", ViTMLP
+  in_channels: 3 #regarding images
+  num_classes: 14
+  #num_clinical_features: is text_max_seq_length
+  spatial_dims: 2
+  drop_out: 0.1
+  apply_tabular_embedding: True
+  tabular_embedding_size: 512
+  text_only: False
+  vision_only: True
+  llama_path_server: "/home/christian/data/LLaMA/llama2/llama-main" 
+  tokenizer: "llama" #possible values: "llama", "bert"
+  conv1_t_size: 8 #affects the number of patches (and thus memory!)
+  conv1_t_stride: 2 #affects the number of patches (and thus memory!)
+  model_path: "..." #overwritten with Nan for now in the code
+  pretrained_vision_net: True # but not implemented (due to too long sequence lengths)
+  act: "tanh" #relu, tanh,
+  #ViT ---
+  num_vision_layers: 6
+  num_heads: 12
+  mlp_dim: 3072
+  hidden_size: 768
+  patch_size: [16, 16]
+  qkv_bias: False
+
+performance:  #With modification of the following lines the model can be testet on either all, or only one modality
+  text_available: True 
+  vision_available: True
+
+#Interpretabilty
+occlusion:
+  #mask_size: [32,32] #set to patch_size !
+  #stride: [32,32] #must be a factor of the image size #replaced by overlap
+  overlap: 0.75 #overlap between inferred regions
+  mode: 'mean_img' #'gaussian', 'mean_img', 'mean_patch'
+  n_batch: 1 #number of images in a batch for inference #must be "1" in order to being able to concat vision with tabular features in ViTMLP
+  text_mask: "mean" #when "mean", the text is replaced by the mean of the text embeddings, otherwise the text_mask is taken
+  num_examples: 377 #number of examples to process, max is 377
