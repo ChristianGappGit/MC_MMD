@@ -9,5 +9,3 @@ https://physionet.org/content/brazilian-ophthalmological/1.0.1/
 2) Scroll down to Files section, and sign the data use agreement for the project.
 
 3) Download data
-
-## Data Preprocessing:
