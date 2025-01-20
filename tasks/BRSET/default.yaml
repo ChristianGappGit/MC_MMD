@@ -1,0 +1,66 @@
+experiment_name: Default
+device: cuda
+
+seed: 0 # <0: no determinism, > 0 determinism
+
+data:
+  num_samples: 16266 #max is 16.266 (images, from 8.524 patients)
+  apply_znorm: True
+  embedding_dim_comorbidities: 30
+
+train:
+  batch_size: 25
+  shuffle: True
+  num_workers: 2
+  epochs: 150
+
+val:
+  batch_size: 25
+  shuffle: False
+  num_workers: 2
+  interval: 4
+
+net:
+  name: "ViTMLP" #"ViTMLP" or "DenseMLP" or "ResMLP" or "SwinViTMLP" or "SwinViTMLP_torch"
+  in_channels: 3  #3 for RGB
+  img_size: [960, 1120] # [2400,3000], must be small in order not to overfill RAM
+  spatial_dims: 2
+  num_classes: 14 #12 diseases, 1 other, 1 No Finding
+  num_clinical_features: 7 #note that comorbidities count as one here (handled correctly in the code then)
+  pretrained_vision_net: True #not implemented for ViT yet, as sequence length is too long (pretrained berts have seq.len 196)
+  only_vision: True #if True, only vision is used, no tabular data
+  only_clinical: False #if True, only clinical is used, no vision data
+  dropout_rate: 0.15
+  #ViT
+  patch_size: [32, 32] #hence 30*35 patches = 1050 patches, must be not too big in order not to overfill GPU (TRADEOFF)
+  hidden_size: 768
+  num_heads: 12 #for all layers
+  num_vision_layers: 4
+  qkv_bias: False
+  mlp_dim: 3072
+  #---ResMLP---
+  conv1_t_size: 8 #affects the number of patches (and thus memory!)
+  conv1_t_stride: 2 #affects the number of patches (and thus memory!)
+  model_path: "..." #overwritten with Nan for now in the code
+  act: "tanh" #relu, tanh,
+  #---DenseMLP---
+  #no additional parameters
+
+optimizer:
+  learning_rate: 1e-4
+  weight_decay: 1e-2
+
+#Interpretabilty
+occlusion:
+  mask_size: [64,70] #[img_size] / [64,70] = [15,16], i.e. 15*16 patches = 240 patches 
+  #stride: [32,32] #must be a factor of the image size #replaced by overlap
+  overlap: 0.75 #overlap between inferred regions
+  mode: 'mean_img' #'gaussian', 'mean_img', 'mean_patch'
+  n_batch: 1 #number of images in a batch for inference #must be "1" in order to being able to concat vision with tabular features in ViTMLP
+  tabular_mask: "mean" #when "mean", the text is replaced by the mean of the text embeddings, otherwise the text_mask is taken
+  num_examples: 3254 #number of examples to process, max is 3254 for val data
+  num_examples_to_plot: 40 #number of examples to plot, set low in order to save memory
+
+performance:  #With modification of the following lines the model can be testet on either all, or only one modality
+  tabular_available: True 
+  vision_available: True

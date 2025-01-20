@@ -1,0 +1,17 @@
+1) TRAINING: modify default.yaml file.
+             specify GPU in brset_multimodal_classification.py
+    python3 brset_multimodal_classification.py
+    (TRAINING...)
+
+2) PERFORMANCE 
+    python3 performance.py output/run_x model_name
+    (optional for other saved models)
+
+3) INTERPRETABILITY 
+    python3 interpretability_postprocessing.py output/run_x 
+
+4) VISUALISATION
+    python3 postprocessing_visualisation.py output/run_x/interpretability
+
+5) VISUALISATION
+    python3 postprocessing_visualisation_titlepage.py output/run_x/interpretability/val
