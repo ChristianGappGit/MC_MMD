@@ -555,3 +555,417 @@ class OcclusionSensitivityModality:
 
         print("Occlusion Sensitivity DONE.")
         return differences_probs_per_modality_per_class, modality_contribution_per_modality_per_class
+        
+
+class OcclusionSensitivityText:
+    def __init__(self, nn_module, replace_token, skip_token="**NULL**", color_map='turbo', map_colors_to_min_max=True,
+                 mask_words = True):
+        self.model = nn_module  
+        self.color_map = color_map
+        self.map_colors_to_min_max = map_colors_to_min_max
+        self.mapping_range = [0.15,0.85] # [0.15,0.85] herein the colormap is not too dark for unimportant tokens and thus still readable
+        self.replace_token = replace_token
+        self.skip_token = skip_token
+        self.maks_words = mask_words #True: mask words instead of syllables
+        print("self.replace_token", self.replace_token)    #TODO: delete
+
+    def __call__(self, x_text, x_tokens, x_img,
+                 ):
+        """
+        x_text must be a vector of syllables
+            [[], []..]
+        x_tokens are tokenized syllables (numbers in vectors)
+            [[..]]
+        x_img is the image
+        
+        occludes syllables in x_tokens, recomputes the prediction, and returns colorirized text based on the difference in prediction
+        syll occlusion is done by replacing the syllable with a special token (i.e. "[MASK]")
+        """
+        #compute outputs unmasked
+        outputs = self.model(x_tokens, x_img)
+        outputs = outputs.detach().cpu().numpy()
+        outputs_pred = [1 if x >= 0.5 else 0 for x in outputs[0]]
+
+        #for each syllable, replace with self.replace_token, compute outputs masked and store difference
+
+        print("x_tokens", x_tokens)    #TODO: delete
+        print("x_text", x_text)
+        tqdm, _ = optional_import("tqdm", name="tqdm")
+
+        if self.replace_token is None: #take the mean of the syllables
+            #cast x_tokens[0] to float
+            x_token_float = x_tokens[0].float()
+            print("x_token_float", x_token_float)    #TODO: delete
+            #take mean (without zeros) and round
+            replace_token = int(torch.mean(x_token_float[x_token_float != 0]).round())
+            print("x_token_float", x_token_float)    #TODO: delete
+            print("torch.mean(x_token_float)", torch.mean(x_token_float))    #TODO: delete
+        else: 
+            replace_token = self.replace_token
+            
+        print("replace_token", replace_token)    #TODO: delete
+
+        n = 0 #number of syllables or words (depending on self.mask_words) that forced a class change
+
+        if self.maks_words: #compute output diffs of words, instead of syllables
+            len_word = 0
+            occ_sens_class = np.empty((0, outputs.shape[1])) #empty array to store differences
+            token_map = np.empty((0, outputs.shape[1])) #empty array to store differences
+            for i in tqdm(range(len(x_tokens[0]))):
+                if x_text[i][0] == self.skip_token and len_word == 0:
+                    continue
+                if x_text[i][0].startswith("##"):
+                    len_word += 1
+                    continue
+                if len_word == 0:   #new word, first syllable
+                    len_word = 1
+                    continue
+                #now we have the start of a new word
+                #old word is from i-len_word to i, processed in the following lines
+                #store replaced word as last len_word syllables
+                replaced_word = x_tokens[0][i-len_word:i].clone()
+                #replace the tokens now with replace_token
+                x_tokens[0][i-len_word:i] = replace_token*torch.ones(len_word, dtype=torch.long)
+                #compute outputs masked
+                outputs_masked = self.model(x_tokens, x_img)
+                outputs_masked = outputs_masked.detach().cpu().numpy()
+                #see, if classes changed. If yes, store 1, else 0
+                outputs_masked_pred = [1 if x >= 0.5 else 0 for x in outputs_masked[0]]
+                occ_sens_class_i = [1 if x != y else 0 for x, y in zip(outputs_pred, outputs_masked_pred)]
+                """
+                #test: make some noise to data  #TESTED: works!!!
+                if i % 3 == 0:
+                    occ_sens_class_i[0] = 1 #(change one class)
+                """
+                if np.sum(occ_sens_class_i) > 0: #if at least one class changed
+                    n += 1
+                #repeat occ_sens_class_i to len_word
+                occ_sens_class_i = np.array([occ_sens_class_i])
+                occ_sens_class_i = np.repeat(occ_sens_class_i, len_word, axis=0) #TODO: uncomment
+                #concat to occ_sens_class
+                occ_sens_class = np.concatenate((occ_sens_class, occ_sens_class_i), axis=0)
+                #compute difference
+                diff = outputs - outputs_masked #[1 x num_classes]
+                #print("diff", diff)    #TODO: delete
+                #store diff for each syllable (len_word times) in diff
+                diff = np.repeat(diff, len_word, axis=0)
+                #print("diff", diff)    #TODO: delete
+                #store difference in token_map
+                token_map = np.concatenate((token_map, diff), axis=0)
+                #restore word in tokens
+                x_tokens[0][i-len_word:i] = replaced_word
+                if x_text[i][0] == self.skip_token:
+                    len_word = 0
+                else: 
+                    len_word = 1 #reset len_word to 1, as we already have a new word
+                #free memory
+                del replaced_word, outputs_masked, diff
+            del outputs
+                
+        else: #compute output diffs with syllables
+            for i in tqdm(range(len(x_tokens[0]))):
+                if x_text[i][0] == self.skip_token:
+                    continue
+                #replace syllable with replace_token
+                replaced_syll = x_tokens[0][i].clone()
+                #print("replaced_syll", replaced_syll)    #TODO: delete
+                x_tokens[0][i] = replace_token
+                #print("x_tokens[0][i]", x_tokens[0][i])    #TODO: delete
+                #print("replaced_syll", replaced_syll)    #TODO: delete
+                #compute outputs masked
+                outputs_masked = self.model(x_tokens, x_img)
+                outputs_masked = outputs_masked.detach().cpu().numpy()
+                #see, if classes changed. If yes, store 1, else 0
+                outputs_masked_pred = [1 if x >= 0.5 else 0 for x in outputs_masked[0]]
+                occ_sens_class_i = [1 if x != y else 0 for x, y in zip(outputs_pred, outputs_masked_pred)]
+                if np.sum(occ_sens_class_i) > 0: #if at least one class changed
+                    n += 1
+                occ_sens_class_i = np.array([occ_sens_class_i])
+                occ_sens_class = occ_sens_class_i if i == 0 else np.concatenate((occ_sens_class, occ_sens_class_i), axis=0)
+                #compute difference
+                diff = outputs - outputs_masked #[1 x num_classes]
+                #store difference in token_map
+                token_map = diff if i == 0 else np.concatenate((token_map, diff), axis=0)
+                #restore syllable
+                x_tokens[0][i] = replaced_syll
+                #free memory
+                del replaced_syll, outputs_masked, diff #token_map stays untouched from "del"
+            del outputs
+        
+        #as negative values are more important, we take invert the values
+        token_map = -token_map
+        #copy of token_map for visualization
+        token_map_max = token_map.copy()
+        token_map_mean = token_map.copy()
+        #token_map is now of shape [len(x_tokens[0]-n(skip_tokens)), num_classes]
+        #compute the mean of the difference for each syllable
+        token_map_mean = np.mean(token_map_mean, axis=1)
+        #compute the max of the difference for each syllable
+        token_map_max = np.max(token_map_max, axis=1)
+        #see if classes changed. If yes, store 1, else 0
+        occ_sens_class = np.sum(occ_sens_class, axis=1) #for each syllable or word
+        occ_sens_class[occ_sens_class > 0] = 1
+
+        #map to min max range:
+        if self.map_colors_to_min_max:
+            token_map_mean = (token_map_mean - np.min(token_map_mean)) / (np.max(token_map_mean) - np.min(token_map_mean)+1e-7)
+            token_map_max = (token_map_max - np.min(token_map_max)) / (np.max(token_map_max) - np.min(token_map_max)+1e-7)
+        if isinstance(x_text, torch.Tensor):
+            x_text = x_text.detach().cpu().numpy()
+        x_text = x_text[0] if len(x_text) == 1 else x_text
+        x_text = [item for sublist in x_text for item in sublist]
+        #print("token_map.shape", token_map.shape)    #TODO: delete
+        #print("token_map (=color_array)", token_map)    #TODO: delete
+        #print("len(x_text)", len(x_text))    #TODO: delete
+        #print("x_text", x_text)    #TODO: delete
+        
+        #print("occ_sens_class", occ_sens_class)
+        #print("token_map", token_map)
+        assert len(token_map) == len(token_map_max) == len(token_map_mean) == len(occ_sens_class)
+        colorized_text_mean, color_bar_mean = colorize_tokens2(tokens=x_text, 
+                                color_array=token_map_mean, 
+                                token_concat='##',
+                                skip_tokens=["**NULL**"],
+                                color_map=self.color_map,
+                                mapping_range=self.mapping_range,
+                                )
+        colorized_text_max, color_bar_max = colorize_tokens2(tokens=x_text, 
+                                color_array=token_map_max, 
+                                token_concat='##',
+                                skip_tokens=["**NULL**"],
+                                color_map=self.color_map,
+                                mapping_range=self.mapping_range,
+                                )
+
+        occ_sens_class_colorized, _ = colorize_tokens2(tokens=x_text, 
+                                color_array=occ_sens_class, 
+                                token_concat='##',
+                                skip_tokens=["**NULL**"],
+                                color_map='gray',
+                                mapping_range=self.mapping_range,
+                                )
+
+        return colorized_text_mean, color_bar_mean, \
+            colorized_text_max, color_bar_max, occ_sens_class_colorized, n, np.sum(np.abs(token_map), axis=0) #last=[1, num_classes] = "importance per class"
+    
+
+class OcclusionSensitivityImage:    #CG 27.02.2024
+    def __init__(self, nn_module, patch_size, color_map='turbo', map_colors_to_min_max=True) -> None:
+        self.model = nn_module
+        self.color_map = color_map
+        self.patch_size = patch_size
+        if isinstance(self.patch_size, int):
+            self.patch_size = [self.patch_size, self.patch_size]
+        self.map_comors_to_min_max = map_colors_to_min_max
+        self.mapping_range = [0.15,0.85]
+
+    def __call__(self, input_ids, image):
+        """
+        input_ids is just forwarded to the model (beware to forward the correct input_ids depending on your model)
+        image: assuming to be 2D image with shape [1, 1, H, W]
+        """
+        #compute outputs unmasked
+        outputs = self.model(input_ids, image)
+        outputs = outputs.detach().cpu().numpy()
+        outputs_pred = [1 if x >= 0.5 else 0 for x in outputs[0]]
+
+        #compute mean of image for replacement
+        replace_token = image.mean().item()
+
+        #compute output diffs with patches
+        n = 0
+        occ_sens_class = np.empty((0, outputs.shape[1]))
+        token_map = np.empty((0, outputs.shape[1]))
+
+        for i in range(0, image.shape[2], self.patch_size[0]):
+            for j in range(0, image.shape[3], self.patch_size[1]):
+                #replace patch with replace_token
+                img_occ = image.clone()
+                img_occ[:, :, i:i+self.patch_size[0], j:j+self.patch_size[1]] = replace_token
+                outputs_masked = self.model(input_ids, img_occ)
+                outputs_masked = outputs_masked.detach().cpu().numpy()
+                #see, if classes changed. If yes, store 1, else 0
+                outputs_masked_pred = [1 if x >= 0.5 else 0 for x in outputs_masked[0]]
+                occ_sens_class_i = [1 if x != y else 0 for x, y in zip(outputs_pred, outputs_masked_pred)]
+                if np.sum(occ_sens_class_i) > 0:
+                    n += 1
+                occ_sens_class_i = np.array([occ_sens_class_i])
+                occ_sens_class = np.concatenate((occ_sens_class, occ_sens_class_i), axis=0)
+                #compute difference
+                diff = outputs - outputs_masked
+                #store difference in token_map
+                token_map = np.concatenate((token_map, diff), axis=0)
+                #free memory
+                del img_occ, outputs_masked, diff
+        del outputs
+
+        #token_map shape = [image.shape[2]//self.patch_size[0] * image.shape[3]//self.patch_size[1], num_classes]
+        #as negative values are more important, we take invert the values
+        token_map = -token_map
+        #copy of token_map for visualization
+        token_map_max = token_map.copy()
+        token_map_mean = token_map.copy()
+        #token_map is now of shape [image.shape[2]//self.patch_size[0] * image.shape[3]//self.patch_size[1], num_classes]
+        token_map_mean = np.mean(token_map_mean, axis=1)
+        token_map_max = np.max(token_map_max, axis=1)
+        #see if classes changed. If yes, store 1, else 0
+        occ_sens_class = np.sum(occ_sens_class, axis=1)
+        occ_sens_class[occ_sens_class > 0] = 1
+
+        #map to min max range:
+        if self.map_comors_to_min_max:
+            token_map_mean = (token_map_mean - np.min(token_map_mean)) / (np.max(token_map_mean) - np.min(token_map_mean)+1e-7)
+            token_map_max = (token_map_max - np.min(token_map_max)) / (np.max(token_map_max) - np.min(token_map_max)+1e-7)
+        
+        assert len(token_map) == len(token_map_max) == len(token_map_mean) == len(occ_sens_class)
+
+        colorized_image_mean = colorize_img(
+                                [image.shape[2], image.shape[3]],
+                                self.patch_size,
+                                token_map_mean, 
+                                self.color_map, 
+                                mapping_range=self.mapping_range,
+        )
+        """
+        colorized_image_max = colorize_img(
+                                [image.shape[1], image.shape[2]],
+                                self.patch_size,
+                                token_map_max, 
+                                self.color_map, 
+                                mapping_range=self.mapping_range,
+        )
+        """
+        occ_sens_class_colorized = colorize_img(
+                                [image.shape[2], image.shape[3]], 
+                                self.patch_size,
+                                occ_sens_class, 
+                                "gray", 
+                                mapping_range=self.mapping_range,
+        )
+
+        return colorized_image_mean, occ_sens_class_colorized, n, np.sum(np.abs(token_map), axis=0) #last=[1, num_classes] = "importance per class"
+
+
+class OcclusionSensitivityTabularData:    #CG 21.05.2024
+    def __init__(self, nn_module, replace_token, skip_token="**NULL**", color_map='turbo', map_colors_to_min_max=True,
+                 joined_occ_interval=[None,None]
+                 ):
+        """
+        joined_occ_interval: the given interval will be occluded and handled as one data entry
+        """
+        self.model = nn_module
+        self.color_map = color_map
+        self.map_colors_to_min_max = map_colors_to_min_max
+        self.mapping_range = [0.15,0.85] # [0.15,0.85] herein the colormap is not too dark for unimportant tokens and thus still readable
+        self.replace_token = replace_token
+        self.skip_token = skip_token
+        self.joined_occ_entries = joined_occ_interval
+
+    def __call__(self, x_tabular, x_tabular_plain, x_img,
+                 ):
+        """
+        x_tabular is a vector of numbers
+        x_tabular_plain contains the plain data entries
+        x_img is the image
+        """
+
+        #compute outputs unmasked
+        outputs = self.model(x_tabular, x_img)
+        outputs = outputs.detach().cpu().numpy()
+        outputs_pred = [1 if x >= 0.5 else 0 for x in outputs[0]]
+
+        if self.replace_token is None: #take the mean of the syllables
+            #cast x_tokens[0] to float
+            x_tabular_float = x_tabular[0].float()
+            #take mean and round
+            replace_token = int(torch.mean(x_tabular_float).round())
+        else:
+            replace_token = self.replace_token
+
+        n = 0 #number of data entries that forced a class change
+
+        #tqdm, _ = optional_import("tqdm", name="tqdm")
+        occ_sens_class = np.empty((0, outputs.shape[1]))
+        tabular_map = np.empty((0, outputs.shape[1]))
+
+        i = 0
+        while i < len(x_tabular[0]):
+            print("i", i)    #TODO: delete
+            if i == self.joined_occ_entries[0]:
+                replaced_data = x_tabular[0][i:self.joined_occ_entries[1]].clone()
+                x_tabular[0][i:self.joined_occ_entries[1]] = replace_token*torch.ones(self.joined_occ_entries[1]-i, dtype=torch.long)
+            else:
+                #replace data entry with replace_token
+                replaced_data = x_tabular[0][i].clone()
+                x_tabular[0][i] = replace_token
+            #compute outputs masked
+            outputs_masked = self.model(x_tabular, x_img)
+            outputs_masked = outputs_masked.detach().cpu().numpy()
+            #see, if classes changed. If yes, store 1, else 0
+            outputs_masked_pred = [1 if x >= 0.5 else 0 for x in outputs_masked[0]]
+            occ_sens_class_i = [1 if x != y else 0 for x, y in zip(outputs_pred, outputs_masked_pred)]
+            if np.sum(occ_sens_class_i) > 0:
+                n += 1
+            occ_sens_class_i = np.array([occ_sens_class_i])
+            occ_sens_class = np.concatenate((occ_sens_class, occ_sens_class_i), axis=0)
+            #compute difference
+            diff = outputs - outputs_masked
+            #store difference in tabular_map
+            tabular_map = np.concatenate((tabular_map, diff), axis=0)
+            #restore data entry
+            if i == self.joined_occ_entries[0]:
+                x_tabular[0][i:self.joined_occ_entries[1]] = replaced_data
+                i = self.joined_occ_entries[1]
+            else:
+                x_tabular[0][i] = replaced_data
+            i += 1
+            #free memory
+            del replaced_data, outputs_masked
+        del outputs
+
+        #as negative values are more important, we take the invers of the values
+        tabular_map = -tabular_map
+        #copy of tabular_map for visualization
+        tabular_map_max = tabular_map.copy()
+        tabular_map_mean = tabular_map.copy()
+        #tabular_map is now of shape [len(x_tabular[0]), num_classes]
+        #compute the mean of the difference for each data entry
+        tabular_map_mean = np.mean(tabular_map_mean, axis=1)
+        #compute the max of the difference for each data entry
+        tabular_map_max = np.max(tabular_map_max, axis=1)
+        #see if classes changed. If yes, store 1, else 0
+        occ_sens_class = np.sum(occ_sens_class, axis=1)
+        occ_sens_class[occ_sens_class > 0] = 1
+
+        #map to min max range:
+        if self.map_colors_to_min_max:
+            tabular_map_mean = (tabular_map_mean - np.min(tabular_map_mean)) / (np.max(tabular_map_mean) - np.min(tabular_map_mean)+1e-7)
+            tabular_map_max = (tabular_map_max - np.min(tabular_map_max)) / (np.max(tabular_map_max) - np.min(tabular_map_max)+1e-7)
+
+        assert len(tabular_map) == len(tabular_map_max) == len(tabular_map_mean) == len(occ_sens_class)
+
+        colorized_tabular_mean, color_bar_mean = colorize_tokens(
+                                tokens=x_tabular_plain,
+                                color_array=tabular_map_mean,
+                                color_map=self.color_map,
+                                mapping_range=self.mapping_range,
+                                cbar_length = 50
+        )
+        colorized_tabular_max, color_bar_max = colorize_tokens(
+                                tokens=x_tabular_plain,
+                                color_array=tabular_map_max,
+                                color_map=self.color_map,
+                                mapping_range=self.mapping_range,
+                                cbar_length = 50
+        )
+        occ_sens_class_colorized, _ = colorize_tokens(
+                                tokens=x_tabular_plain,
+                                color_array=occ_sens_class,
+                                color_map='gray',
+                                mapping_range=self.mapping_range,
+        )
+
+        return colorized_tabular_mean, color_bar_mean, colorized_tabular_max, color_bar_max, occ_sens_class_colorized, n, \
+            np.sum(np.abs(tabular_map), axis=0), np.sum(np.abs(tabular_map), axis=1)
+            #axis=0: [1, num_classes] = "importance per class"
+            #axis=1: [1, len(x_tabular[0])] = "importance per data entry"
