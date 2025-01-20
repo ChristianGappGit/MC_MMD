@@ -18,3 +18,8 @@ classification of diseases
 ## Hecktor22
 3D CT images (head and neck), tabular data (patient information)
 regression, prediction of RFS times
+
+## Overall results regarding modality contribution
+Modality contribution specific for architecture and dataset. Entries quantify *m_0* to *m_1*, viz. vision : text (Chest X-Ray) and vision : tabular (BRSET, Hecktor 22). The computation was done on the testing datasets.
+
+![img](mc_all.png "mc_all")
