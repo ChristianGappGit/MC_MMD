@@ -11,5 +11,10 @@ Fig.: CXR1897_IM-0581-1001: Correctly predicted disease: support devices. Modali
 
 ## BRSET
 
+![img4](BRSET_OccSens.png "BRSET OccSens")
 
+![img5](BRSET_OccSens_tabular_img03501_MEAN.png "BRSET_OccSens_tabular_img03501_MEAN OccSens")
 
+![img6](BRSET_OccSens_tabular_img03501_MAX.png "BRSET_OccSens_tabular_img03501_MAX OccSens")
+
+Fig.: img03501: Correctly predicted disease: drusens. Modality contribution vision : tabular = 0.95 : 0.05. Model: ResNetMLP. Importance (low to high) is colored from blue to red. Top, left to right: source image, GradCAM, class specific Occlusion Sensitivity for class drusens (MONAI), Occlusion Sensitivity averaged over all classes (CG, i.e. *ours*). Bottom: tabular data with attributes patient age, comorbidities, diabetes time, insulin use, patient sex, exam eye, diabetes from left to right. MEAN: The patient's age has the highest contribution, patient sex the lowest in average. MAX: patient's age is the most significant attribute for one class: drusens.
