@@ -1,0 +1,67 @@
+experiment_name: Default
+device: cuda
+
+seed: 0 # <0: no determinism, > 0 determinism
+
+spacing: [1.0, 1.0, 1.0]
+
+data:
+  use_segmented_imgs : True #if segmented data should be used
+  cache: True #if data should be cached
+  use_only_CT: True #if only CT data should be used, therefor make sure to have "CT" in the filenames(img)
+  apply_z_norm: True # creates new data with mean 0 and std 1 (problem: datatype int necessary for Embedding...!!!)
+
+train:
+  epochs: 400
+  batch_size: 20
+  randFlipProp: 0.7
+  randAffineProp: 0.5
+  randAffineRotateRange: [0.7, 0.7, 0.2094] #0.2094 ~ PI/15
+  randAffineScaleRange: [0.01, 0.01, 0.05] # 1.0 is added within RandAffine function, allowing 0.0 to correspond to no change
+
+val:
+  batch_size: 20
+  interval: 5
+
+net:
+  arch: "ViTMLP" #"ViTMLP" or "MultimodalTransformer" or "ResMLP"
+  in_channels: 1 #as grayscale, 3 for RGB
+  img_size: [160,128,128]
+  spatial_dims: 3
+  num_classes: 1 #RFS, or relapse
+  num_clinical_features: 10 #Gender (2) + Age + 7 clinical features
+  num_clinical_layers: 6
+  num_cross_layers: 2 #for multimodal cross interaction
+  pretrained_vision_net: True #not implemented for ViT yet, as sequence length is too long (pretrained berts have seq.len 196)
+  only_vision: True #if True, only vision is used, no tabular data
+  only_clinical: False #if True, only clinical is used, no vision data
+  #ViT
+  patch_size: [16,16,16]
+  hidden_size: 768
+  num_heads: 12 #for all layers
+  num_vision_layers: 8
+  dropout_rate: 0.1
+  qkv_bias: False
+  mlp_dim: 3072
+  act_ViT: "relu" #relu, GELU
+  #---ResMLP---
+  conv1_t_size: 8 #affects the number of patches (and thus memory!)
+  conv1_t_stride: 2 #affects the number of patches (and thus memory!)
+  model_path: "..." #overwritten with Nan for now in the code
+  act: "relu" #relu, tanh,
+
+optimizer:
+  learning_rate: 1e-4
+  weight_decay: 1e-3
+
+#Interpretabilty
+occlusion:
+  mask_patches: False #mask patches instead of whole image
+  mask_size: [80,64,64]
+  overlap: 0.75 #overlap between inferred regions
+  mode: 'mean_img' #'gaussian', 'mean_img', 'mean_patch'
+  n_batch: 1 #number of images in a batch for inference #must be "1" in order to being able to concat vision with tabular features in ViTMLP
+  tabular_mask: True #mask each token extra
+  num_examples: 89 #number of examples to process, max is 89
+  #model_name: ""..." #moved to argument of function
+  do_3D_occlusion: False
