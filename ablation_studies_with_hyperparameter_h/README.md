@@ -21,9 +21,11 @@ contributions with respect to the hyper-parameters h(vision) and h(text).
 
 ![img](3D.png "3D")
 
-## 2D plots
+## 2D plot 1
 
 ![img](2D_1.png "2D 1")
+
+## 2D plot 2
 
 ![img](2D_2.png "2D 2")
 
