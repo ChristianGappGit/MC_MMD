@@ -1,6 +1,6 @@
 # Ablation Studies with hyper-parameter h
 Ablation studies were conducted on the image–text dataset 2D Chest X-Ray
-+ clinical report with the ResNetMLP model, investigating the effect of hyper-
+and clinical report with the ResNetMLP model, investigating the effect of hyper-
 parameter h. This specific dataset and model were chosen because they utilize the
 modalities in a largely balanced manner. For both modalities, vision and text, we
 used different combinations of hi and tracked the resulting modality contribution
