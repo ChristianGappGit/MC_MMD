@@ -24,7 +24,13 @@ The data can be download with the instructions in data/*..
 ## citation
 Please cite:
 
-*(will be added)*
+@article{Gapp_MCI,
+	title={What are You Looking at? {M}odality Contribution in Multimodal Medical Deep Learning Methods}, 
+	author={Christian Gapp and Elias Tappeiner and Martin Welk and Karl Fritscher and Elke R. Gizewski and Rainer Schubert},
+	year={2025},
+	doi={10.48550/arXiv.2503.01904},
+	note = "{Conference for Computer Assisted Radiology and Surgery (CARS) -- (in press)}"
+}
 
 ## abstract
 
