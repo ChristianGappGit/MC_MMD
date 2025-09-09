@@ -16,3 +16,17 @@ the third axis shows m(vision) and m(text). The rendered surface was generated
 by interpolating 36 data points. In the Figs. 6 and 7 the results of the analysis
 for selected 2D slices are plotted, representing the variation of the modality
 contributions with respect to the hyper-parameters h(vision) and h(text).
+
+## 3D plot
+
+![img](3D.png "3D")
+
+## 2D plots
+
+![img](2D_1.png "2D 1")
+
+![img](2D_2.png "2D 2")
+
+## Meaningful ranges for h values
+
+![img](explanation.png "explanation")
