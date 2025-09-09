@@ -21,16 +21,27 @@ The data can be download with the instructions in data/*..
 * ChestXRay
 * Hecktor22
 
-## citation
-Please cite:
+## Citation
 
+If you use this work, please cite our paper:
+
+**Gapp, C., Tappeiner, E., Welk, M., Fritscher, K., Gizewski, E.R., & Schubert, R. (2025).**  
+*What are You Looking at? Modality Contribution in Multimodal Medical Deep Learning Methods.*  
+Conference for Computer Assisted Radiology and Surgery (CARS) — (in press).  
+[arXiv:2503.01904](https://doi.org/10.48550/arXiv.2503.01904)
+
+You can also use the BibTeX entry:
+
+```bibtex
 @article{Gapp_MCI,
-	title={What are You Looking at? {M}odality Contribution in Multimodal Medical Deep Learning Methods}, 
-	author={Christian Gapp and Elias Tappeiner and Martin Welk and Karl Fritscher and Elke R. Gizewski and Rainer Schubert},
-	year={2025},
-	doi={10.48550/arXiv.2503.01904},
-	note = "{Conference for Computer Assisted Radiology and Surgery (CARS) -- (in press)}"
+  title={What are You Looking at? {M}odality Contribution in Multimodal Medical Deep Learning Methods},
+  author={Christian Gapp and Elias Tappeiner and Martin Welk and Karl Fritscher and Elke R. Gizewski and Rainer Schubert},
+  year={2025},
+  doi={10.48550/arXiv.2503.01904},
+  note = "{Conference for Computer Assisted Radiology and Surgery (CARS) -- (in press)}"
 }
+```
+
 
 ## abstract
 

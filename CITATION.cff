@@ -1,0 +1,27 @@
+
+---
+
+## 2️⃣ CITATION.cff file
+
+Create a file called `CITATION.cff` in the **root of your repository**:
+
+```yaml
+cff-version: 1.2.0
+message: "If you use this work, please cite it using the following BibTeX."
+title: "What are You Looking at? Modality Contribution in Multimodal Medical Deep Learning Methods"
+authors:
+  - family-names: Gapp
+    given-names: Christian
+  - family-names: Tappeiner
+    given-names: Elias
+  - family-names: Welk
+    given-names: Martin
+  - family-names: Fritscher
+    given-names: Karl
+  - family-names: Gizewski
+    given-names: Elke R.
+  - family-names: Schubert
+    given-names: Rainer
+year: 2025
+doi: 10.48550/arXiv.2503.01904
+
